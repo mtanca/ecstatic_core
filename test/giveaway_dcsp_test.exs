@@ -2,54 +2,45 @@ defmodule GiveAwayDCSPTest do
   use ExUnit.Case
 
   setup context do
-    init_state = %{
-      max_pack_quantity: context[:params][:max_pack_quantity],
+    default_params = %{
+      max_pack_quantity: 10,
       name: "test",
-      packs_available: context[:params][:packs_available],
-      start_time: context[:params][:start_time],
-      end_time: context[:params][:end_time]
+      packs_available: 10,
+      start_time: :os.system_time(:seconds) - 86400,
+      end_time: :os.system_time(:seconds) + 86400
     }
+
+    # Merge any variables supplied by the test into the init state.
+    init_state =
+      if context[:params] do
+        Map.merge(default_params, context[:params])
+      else
+        default_params
+      end
 
     {:ok, pid} = GiveAwayDCSP.start_link(init_state)
 
     %{init_state: init_state, pid: pid}
   end
 
-  @tag params: %{
-         max_pack_quantity: 5,
-         packs_available: 2,
-         start_time: :os.system_time(:seconds) - 86400,
-         end_time: :os.system_time(:seconds) + 86400
-       }
+  @tag params: %{packs_available: 1}
   test "GiveAwayDCSP struct is created correctly", context do
-    uuid = UUID.uuid4()
-    name = "test"
+    uuid = :sys.get_state(context[:pid]).uuid
 
     expected_struct = %GiveAwayDCSP{
-      giveaway_defintion: %GiveAwayDefintion{
-        uuid: uuid,
-        name: name,
-        max_pack_quantity: 5,
-        start_time: nil,
-        end_time: nil
-      },
+      giveaway_defintion: GiveAwayDefintion.generate(uuid, context[:init_state]),
       uuid: uuid,
-      packs_available: 2,
+      packs_available: 1,
       pack: %{},
       last_pack_number: 0,
       status: :inactive
     }
 
     state = :sys.get_state(context[:pid])
-    assert expected_struct = state
+    assert expected_struct == state
   end
 
-  @tag params: %{
-         max_pack_quantity: 1,
-         packs_available: 1,
-         start_time: :os.system_time(:seconds) - 86400,
-         end_time: :os.system_time(:seconds) + 86400
-       }
+  @tag params: %{max_pack_quantity: 1, packs_available: 1}
   test "GiveAway is completed when max quanitity of packs have been sold.", context do
     # Update GiveAwayDCSP to be :active
     :sys.replace_state(context[:pid], fn state ->
@@ -69,12 +60,6 @@ defmodule GiveAwayDCSPTest do
     {:error, "GiveAway has completed."} = GiveAwayDCSP.handle_purchase(nil)
   end
 
-  @tag params: %{
-         max_pack_quantity: 150,
-         packs_available: 110,
-         start_time: :os.system_time(:seconds) - 86400,
-         end_time: :os.system_time(:seconds) + 86400
-       }
   test "Soft errors when GiveAway is :inactive", context do
     state = :sys.get_state(context[:pid])
 
@@ -89,8 +74,6 @@ defmodule GiveAwayDCSPTest do
   end
 
   @tag params: %{
-         max_pack_quantity: 150,
-         packs_available: 110,
          start_time: :os.system_time(:seconds) - 86_400,
          end_time: :os.system_time(:seconds) - 100
        }
