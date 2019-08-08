@@ -13,26 +13,18 @@ defmodule GiveAwayDefintion do
     field(:end_time, non_neg_integer() | nil)
   end
 
-  @spec generate(
-          String.t(),
-          String.t(),
-          non_neg_integer(),
-          non_neg_integer() | nil,
-          non_neg_integer() | nil
-        ) :: __MODULE__.t()
-  def generate(
-        giveaway_uuid,
-        giveaway_name,
-        max_pack_quantity,
-        start_time \\ nil,
-        end_time \\ nil
-      ) do
+  @spec generate(String.t(), params :: map()) :: __MODULE__.t()
+  def generate(giveaway_uuid, params) do
+    params = Map.merge(default_generate_params(), params)
+
     %__MODULE__{
       uuid: giveaway_uuid,
-      name: giveaway_name,
-      max_pack_quantity: max_pack_quantity,
-      start_time: start_time,
-      end_time: end_time
+      name: params.name,
+      max_pack_quantity: params.max_pack_quantity,
+      start_time: params.start_time,
+      end_time: params.end_time
     }
   end
+
+  defp default_generate_params(), do: %{name: nil, start_time: nil, end_time: nil}
 end

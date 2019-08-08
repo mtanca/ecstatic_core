@@ -31,7 +31,7 @@ defmodule GiveAwayDCSP do
       :ok,
       %__MODULE__{
         uuid: uuid,
-        giveaway_defintion: GiveAwayDefintion.generate(uuid, state.name, state.max_pack_quantity),
+        giveaway_defintion: GiveAwayDefintion.generate(uuid, state),
         packs_available: state.packs_available || 0,
         pack: %{},
         last_pack_number: 0
@@ -41,21 +41,25 @@ defmodule GiveAwayDCSP do
 
   #################### Public API ####################
 
+  @spec handle_purchase(map()) :: {:ok, Pack.t()} | {:error, term()}
   def handle_purchase(data) do
-    GenServer.call(__MODULE__, {:process_purchase, data})
+    GenServer.call(__MODULE__, {:handle_purchase, data})
   end
 
   #################### GenServer Implementation ####################
 
   @impl GenServer
-  def handle_call({:process_purchase, _purchase_info}, _from, data) do
+  def handle_call({:handle_purchase, _purchase_info}, _from, data) do
     case data.status do
       :active ->
         {:ok, new_data} = process(data)
         {:reply, {:ok, new_data.pack}, new_data}
 
       :inactive ->
-        {:reply, {:error, "GiveAway has not started yet."}, data}
+        {:reply, {:error, "GiveAway has not started."}, data}
+
+      :suspended ->
+        {:reply, {:error, "GiveAway has ended and will be resolved via raffel."}, data}
 
       :completed ->
         {:reply, {:error, "GiveAway has completed."}, data}
@@ -68,24 +72,37 @@ defmodule GiveAwayDCSP do
   defp process(data) do
     case Pack.create(data) do
       {:ok, pack} ->
-        # Changes status to :completed if the number on the newly generated pack has
-        # reached the max capacity set on the GiveAway definition.
-        should_resolve? = fn pack, data ->
-          pack.number >= data.giveaway_defintion.max_pack_quantity
-        end
-
         {:ok,
          %{
            data
            | pack: pack,
              packs_available: data.packs_available - 1,
              last_pack_number: pack.number,
-             status: if(should_resolve?.(pack, data), do: :completed, else: data.status)
+             status: handle_status(pack, data)
          }}
 
       {:error, reason} = error ->
         Logger.error(reason)
         error
+    end
+  end
+
+  @spec handle_status(Pack.t(), __MODULE__.t()) :: atom()
+  defp handle_status(pack, data) do
+    cond do
+      # Change status to :completed if the number on the newly generated pack has
+      # reached the max capacity set on the GiveAway definition.
+      pack.number >= data.giveaway_defintion.max_pack_quantity ->
+        :completed
+
+      # Change status to :suspended if the duration for the GiveAway has expired and
+      # there still packs left.
+      :os.system_time(:seconds) > data.giveaway_defintion.end_time and
+          pack.number < data.giveaway_defintion.max_pack_quantity ->
+        :suspended
+
+      true ->
+        data.status
     end
   end
 end

@@ -5,7 +5,9 @@ defmodule GiveAwayDCSPTest do
     init_state = %{
       max_pack_quantity: context[:params][:max_pack_quantity],
       name: "test",
-      packs_available: context[:params][:packs_available]
+      packs_available: context[:params][:packs_available],
+      start_time: context[:params][:start_time],
+      end_time: context[:params][:end_time]
     }
 
     {:ok, pid} = GiveAwayDCSP.start_link(init_state)
@@ -13,7 +15,12 @@ defmodule GiveAwayDCSPTest do
     %{init_state: init_state, pid: pid}
   end
 
-  @tag params: %{max_pack_quantity: 5, packs_available: 2}
+  @tag params: %{
+         max_pack_quantity: 5,
+         packs_available: 2,
+         start_time: :os.system_time(:seconds) - 86400,
+         end_time: :os.system_time(:seconds) + 86400
+       }
   test "GiveAwayDCSP struct is created correctly", context do
     uuid = UUID.uuid4()
     name = "test"
@@ -37,7 +44,12 @@ defmodule GiveAwayDCSPTest do
     assert expected_struct = state
   end
 
-  @tag params: %{max_pack_quantity: 1, packs_available: 1}
+  @tag params: %{
+         max_pack_quantity: 1,
+         packs_available: 1,
+         start_time: :os.system_time(:seconds) - 86400,
+         end_time: :os.system_time(:seconds) + 86400
+       }
   test "GiveAway is completed when max quanitity of packs have been sold.", context do
     # Update GiveAwayDCSP to be :active
     :sys.replace_state(context[:pid], fn state ->
@@ -57,17 +69,40 @@ defmodule GiveAwayDCSPTest do
     {:error, "GiveAway has completed."} = GiveAwayDCSP.handle_purchase(nil)
   end
 
-  @tag params: %{max_pack_quantity: 150, packs_available: 110}
+  @tag params: %{
+         max_pack_quantity: 150,
+         packs_available: 110,
+         start_time: :os.system_time(:seconds) - 86400,
+         end_time: :os.system_time(:seconds) + 86400
+       }
   test "Soft errors when GiveAway is :inactive", context do
     state = :sys.get_state(context[:pid])
 
     # GiveAway will default to :inactive unless explicitly marked as :active.
     assert state.status == :inactive
 
-    {:error, "GiveAway has not started yet."} = GiveAwayDCSP.handle_purchase(nil)
+    {:error, "GiveAway has not started."} = GiveAwayDCSP.handle_purchase(nil)
 
     # State does not change
     unchanged_state = :sys.get_state(context[:pid])
     assert state == unchanged_state
+  end
+
+  @tag params: %{
+         max_pack_quantity: 150,
+         packs_available: 110,
+         start_time: :os.system_time(:seconds) - 86_400,
+         end_time: :os.system_time(:seconds) - 100
+       }
+  test "GiveAway suspends when time expires", context do
+    # Update GiveAwayDCSP to be :active
+    :sys.replace_state(context[:pid], fn state ->
+      put_in(state.status, :active)
+    end)
+
+    {:ok, _pack} = GiveAwayDCSP.handle_purchase(nil)
+    state = :sys.get_state(context[:pid])
+
+    assert state.status == :suspended
   end
 end
