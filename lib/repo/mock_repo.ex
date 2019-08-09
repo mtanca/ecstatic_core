@@ -1,5 +1,9 @@
 defmodule MockRepo do
-  def fetch_giveaway_prizes(uuid, max_pack_quantity) do
+  @moduledoc """
+  Module used to mock interactions with the DB.
+  """
+
+  def fetch_giveaway_prizes(_uuid, max_pack_quantity) do
     allowed_currency = 0.1 * max_pack_quantity
     allowed_shirts = 0.05 * max_pack_quantity
     allowed_holy_grail = 1 / max_pack_quantity

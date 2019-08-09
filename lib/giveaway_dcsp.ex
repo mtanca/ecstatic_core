@@ -72,8 +72,13 @@ defmodule GiveAwayDCSP do
   def handle_call({:handle_purchase, _purchase_info}, _from, data) do
     case data.status do
       :active ->
-        {:ok, new_data} = process(data)
-        {:reply, {:ok, new_data.pack}, new_data}
+        case process(data) do
+          {:ok, new_data} ->
+            {:reply, {:ok, new_data.pack}, new_data}
+
+          {:error, _reason} = error ->
+            {:reply, error, data}
+        end
 
       :inactive ->
         {:reply, {:error, "GiveAway has not started."}, data}

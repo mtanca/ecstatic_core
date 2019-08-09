@@ -18,28 +18,34 @@ defmodule Pack do
   def create(data) do
     pack = %__MODULE__{
       uuid: UUID.uuid4(),
-      prizes: get_prizes(),
+      prizes: get_prizes(data),
       number: data.last_pack_number + 1
     }
 
     if pack.prizes, do: {:ok, pack}, else: {:error, "Pack was not created"}
   end
 
-  # TODO Remove entire function when Repo is hooked up. This is a mock function intended
-  # to simulate the API call for getting/composing prizes for each pack. We return nil here
-  # to mock getting bad data back from the API response.
-  @spec get_prizes() :: list() | nil
-  def get_prizes() do
-    random_number = :rand.uniform(6)
+  @spec get_prizes(data :: GiveAwayDCSP.t()) :: list() | nil
+  def get_prizes(data) do
+    sticker_item_uuid = UUID.uuid4()
+    random_number = :rand.uniform(data.giveaway_defintion.max_pack_quantity)
 
-    if random_number == 10 do
-      nil
-    else
-      Enum.reduce(0..random_number, [], fn _, acc ->
-        prize = Prize.new(UUID.uuid4(), Faker.Pokemon.name(), :rand.uniform(15))
-
-        [prize | acc]
+    result =
+      Enum.find(data.prize_numbers, fn {_prize, numbers} ->
+        MapSet.member?(numbers, random_number)
       end)
+
+    case result do
+      nil ->
+        # Everyone wins the default prize (like a sticker)
+        [Prize.new(sticker_item_uuid, "Sticker", 1)]
+
+      {prize_name, _mapset} ->
+        prize = Prize.new(UUID.uuid4(), prize_name, 1)
+        [prize, Prize.new(sticker_item_uuid, "Sticker", 1)]
+
+      _ ->
+        nil
     end
   end
 end

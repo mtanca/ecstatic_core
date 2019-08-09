@@ -7,8 +7,8 @@ defmodule GiveAwayDCSPTest do
       max_pack_quantity: 10,
       name: "test",
       packs_available: 10,
-      start_time: :os.system_time(:seconds) - 86400,
-      end_time: :os.system_time(:seconds) + 86400
+      start_time: :os.system_time(:seconds) - 86_400,
+      end_time: :os.system_time(:seconds) + 86_400
     }
 
     # Merge any variables supplied by the test into the init state.
