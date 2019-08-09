@@ -17,6 +17,8 @@ defmodule GiveAwayDCSP do
     field(:pack, Pack.t() | map(), default: %{})
     field(:last_pack_number, non_neg_integer(), default: 0)
     field(:status, :inactive | :active | :completed, default: :inactive)
+    field(:prize_numbers, map(), default: %{})
+    field(:called_numbers, map(), default: %{})
   end
 
   def start_link(state \\ []) do
@@ -25,7 +27,9 @@ defmodule GiveAwayDCSP do
 
   @impl GenServer
   def init(state) do
+    # TODO pull this information from repo in event DCSP crashes
     uuid = UUID.uuid4()
+    prize_numbers = generate_random_prize_numbers(state)
 
     {
       :ok,
@@ -34,7 +38,9 @@ defmodule GiveAwayDCSP do
         giveaway_defintion: GiveAwayDefintion.generate(uuid, state),
         packs_available: state.packs_available || 0,
         pack: %{},
-        last_pack_number: 0
+        last_pack_number: 0,
+        prize_numbers: prize_numbers,
+        called_numbers: %{}
       }
     }
   end
@@ -104,5 +110,60 @@ defmodule GiveAwayDCSP do
       true ->
         data.status
     end
+  end
+
+  @spec generate_random_prize_numbers(t()) :: map()
+  defp generate_random_prize_numbers(state) do
+    max_pack_quantity = state.max_pack_quantity
+    potential_prizes = mock_possible_prizes(max_pack_quantity)
+
+    Enum.reduce(Map.keys(potential_prizes), %{}, fn key, acc ->
+      prize_map = potential_prizes[key]
+
+      acc = Map.put(acc, prize_map[:name], %{})
+      max_capacity = prize_map[:capacity]
+
+      # Generate unique & random values from 1 to max_pack_quantity.
+      unique_numbers = unique_prize_numbers(max_capacity, acc, max_pack_quantity)
+
+      Map.put(acc, prize_map[:name], unique_numbers)
+    end)
+  end
+
+  # Generates unique numbers for the prize based on the max_prize_quantity.
+  @spec unique_prize_numbers(
+          max_prize_quantity :: non_neg_integer(),
+          map(),
+          giveaway_capacity :: non_neg_integer()
+        ) :: MapSet.t()
+  defp unique_prize_numbers(max_prize_quantity, acc, max_pack_quantity) do
+    Enum.reduce(1..Kernel.trunc(max_prize_quantity), MapSet.new(), fn _, a ->
+      values =
+        acc
+        |> Map.values()
+        |> Enum.reduce(MapSet.new(), fn map, map_acc -> MapSet.put(map_acc, map) end)
+
+      number = rng(max_pack_quantity, values)
+      MapSet.put(a, number)
+    end)
+  end
+
+  # TODO put in a utils file
+  defp rng(max_pack_quantity, set) do
+    number = Enum.random(1..max_pack_quantity)
+    if MapSet.member?(set, number), do: rng(max_pack_quantity, set), else: number
+  end
+
+  # TODO remove this function when repo functionality is implemented.
+  def mock_possible_prizes(max_pack_quantity) do
+    allowed_currency = 0.1 * max_pack_quantity
+    allowed_shirts = 0.05 * max_pack_quantity
+    allowed_holy_grail = 1 / max_pack_quantity
+
+    %{
+      curreny: %{name: "currency", cost: 2.0, capacity: allowed_currency},
+      shirts: %{name: "shirts", cost: 25, capacity: allowed_shirts},
+      holy_grail: %{name: "Private S&M", cost: 100, capacity: allowed_holy_grail}
+    }
   end
 end

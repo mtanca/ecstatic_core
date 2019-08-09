@@ -14,7 +14,7 @@ defmodule Pack do
     field(:number, non_neg_integer(), default: 1)
   end
 
-  @spec create(data :: struct()) :: {:ok, __MODULE__.t()} | {:error, term()}
+  @spec create(data :: GiveAwayDCSP.t()) :: {:ok, __MODULE__.t()} | {:error, term()}
   def create(data) do
     pack = %__MODULE__{
       uuid: UUID.uuid4(),

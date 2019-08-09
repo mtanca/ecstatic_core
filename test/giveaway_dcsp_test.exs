@@ -37,7 +37,15 @@ defmodule GiveAwayDCSPTest do
     }
 
     state = :sys.get_state(context[:pid])
-    assert expected_struct == state
+
+    assert expected_struct.giveaway_defintion == state.giveaway_defintion
+    assert expected_struct.uuid == state.uuid
+    assert expected_struct.packs_available == state.packs_available
+    assert expected_struct.pack == state.pack
+    assert expected_struct.last_pack_number == state.last_pack_number
+    assert expected_struct.status == state.status
+    assert is_map(state.prize_numbers)
+    assert is_map(state.called_numbers)
   end
 
   @tag params: %{max_pack_quantity: 1, packs_available: 1}
