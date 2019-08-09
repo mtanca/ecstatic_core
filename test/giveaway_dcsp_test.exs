@@ -3,11 +3,12 @@ defmodule GiveAwayDCSPTest do
 
   setup context do
     default_params = %{
+      uuid: UUID.uuid4(),
       max_pack_quantity: 10,
       name: "test",
       packs_available: 10,
-      start_time: :os.system_time(:seconds) - 86400,
-      end_time: :os.system_time(:seconds) + 86400
+      start_time: :os.system_time(:seconds) - 86_400,
+      end_time: :os.system_time(:seconds) + 86_400
     }
 
     # Merge any variables supplied by the test into the init state.
@@ -37,7 +38,15 @@ defmodule GiveAwayDCSPTest do
     }
 
     state = :sys.get_state(context[:pid])
-    assert expected_struct == state
+
+    assert expected_struct.giveaway_defintion == state.giveaway_defintion
+    assert expected_struct.uuid == state.uuid
+    assert expected_struct.packs_available == state.packs_available
+    assert expected_struct.pack == state.pack
+    assert expected_struct.last_pack_number == state.last_pack_number
+    assert expected_struct.status == state.status
+    assert is_map(state.prize_numbers)
+    assert is_map(state.called_numbers)
   end
 
   @tag params: %{max_pack_quantity: 1, packs_available: 1}

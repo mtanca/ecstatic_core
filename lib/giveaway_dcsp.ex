@@ -17,26 +17,46 @@ defmodule GiveAwayDCSP do
     field(:pack, Pack.t() | map(), default: %{})
     field(:last_pack_number, non_neg_integer(), default: 0)
     field(:status, :inactive | :active | :completed, default: :inactive)
+    field(:prize_numbers, map(), default: %{})
+    field(:called_numbers, map(), default: %{})
+    field(:repo, module(), default: MockRepo)
   end
 
   def start_link(state \\ []) do
     GenServer.start_link(__MODULE__, state, name: __MODULE__)
   end
 
+  # TODO pull this information from repo in the event GiveAwayDCSP crashes.
   @impl GenServer
-  def init(state) do
-    uuid = UUID.uuid4()
+  def init(initial_state) do
+    repo = Application.get_env(:ecstatic_core, :repo) || MockRepo
+    # giveaway = repo.fetch_giveaway_by_uuid(uuid)
 
-    {
-      :ok,
-      %__MODULE__{
-        uuid: uuid,
-        giveaway_defintion: GiveAwayDefintion.generate(uuid, state),
-        packs_available: state.packs_available || 0,
-        pack: %{},
-        last_pack_number: 0
-      }
+    # packs_available = initial_state.packs_available || giveaway.packs_available
+    # pack = initial_state.pack || giveaway.pack
+    # last_pack_number = initial_state.last_pack_number || giveaway.last_pack_number
+    # prize_numbers = initial_state.prize_numbers || giveaway.prize_numbers
+    # called_numbers = initial_state.called_numbers || giveaway.called_numbers
+
+    state = %__MODULE__{
+      uuid: initial_state.uuid,
+      giveaway_defintion: GiveAwayDefintion.generate(initial_state.uuid, initial_state),
+      packs_available: initial_state.packs_available,
+      pack: %{},
+      last_pack_number: 0,
+      called_numbers: %{},
+      repo: repo
     }
+
+    {:ok, state, {:continue, :generate_prize_numbers}}
+  end
+
+  @impl GenServer
+  def handle_continue(:generate_prize_numbers, state) do
+    prize_numbers = generate_random_prize_numbers(state)
+    state = %{state | prize_numbers: prize_numbers}
+
+    {:noreply, state}
   end
 
   #################### Public API ####################
@@ -52,8 +72,13 @@ defmodule GiveAwayDCSP do
   def handle_call({:handle_purchase, _purchase_info}, _from, data) do
     case data.status do
       :active ->
-        {:ok, new_data} = process(data)
-        {:reply, {:ok, new_data.pack}, new_data}
+        case process(data) do
+          {:ok, new_data} ->
+            {:reply, {:ok, new_data.pack}, new_data}
+
+          {:error, _reason} = error ->
+            {:reply, error, data}
+        end
 
       :inactive ->
         {:reply, {:error, "GiveAway has not started."}, data}
@@ -104,5 +129,47 @@ defmodule GiveAwayDCSP do
       true ->
         data.status
     end
+  end
+
+  @spec generate_random_prize_numbers(t()) :: map()
+  defp generate_random_prize_numbers(state) do
+    max_pack_quantity = state.giveaway_defintion.max_pack_quantity
+    prizes = state.repo.fetch_giveaway_prizes(state.uuid, max_pack_quantity)
+
+    Enum.reduce(Map.keys(prizes), %{}, fn key, acc ->
+      prize_map = prizes[key]
+
+      acc = Map.put(acc, prize_map[:name], %{})
+      max_capacity = prize_map[:capacity]
+
+      # Generate unique & random values from 1 to max_pack_quantity.
+      unique_numbers = unique_prize_numbers(max_capacity, acc, max_pack_quantity)
+
+      Map.put(acc, prize_map[:name], unique_numbers)
+    end)
+  end
+
+  # Generates unique numbers for the prize based on the max_prize_quantity.
+  @spec unique_prize_numbers(
+          max_prize_quantity :: non_neg_integer(),
+          map(),
+          giveaway_capacity :: non_neg_integer()
+        ) :: MapSet.t()
+  defp unique_prize_numbers(max_prize_quantity, acc, max_pack_quantity) do
+    Enum.reduce(1..Kernel.trunc(max_prize_quantity), MapSet.new(), fn _, a ->
+      values =
+        acc
+        |> Map.values()
+        |> Enum.reduce(MapSet.new(), fn map, map_acc -> MapSet.put(map_acc, map) end)
+
+      number = rng(max_pack_quantity, values)
+      MapSet.put(a, number)
+    end)
+  end
+
+  # TODO put in a utils file
+  defp rng(max_pack_quantity, set) do
+    number = Enum.random(1..max_pack_quantity)
+    if MapSet.member?(set, number), do: rng(max_pack_quantity, set), else: number
   end
 end
