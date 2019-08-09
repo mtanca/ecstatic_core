@@ -19,30 +19,44 @@ defmodule GiveAwayDCSP do
     field(:status, :inactive | :active | :completed, default: :inactive)
     field(:prize_numbers, map(), default: %{})
     field(:called_numbers, map(), default: %{})
+    field(:repo, module(), default: MockRepo)
   end
 
   def start_link(state \\ []) do
     GenServer.start_link(__MODULE__, state, name: __MODULE__)
   end
 
+  # TODO pull this information from repo in the event GiveAwayDCSP crashes.
   @impl GenServer
-  def init(state) do
-    # TODO pull this information from repo in event DCSP crashes
-    uuid = UUID.uuid4()
-    prize_numbers = generate_random_prize_numbers(state)
+  def init(initial_state) do
+    repo = Application.get_env(:ecstatic_core, :repo) || MockRepo
+    # giveaway = repo.fetch_giveaway_by_uuid(uuid)
 
-    {
-      :ok,
-      %__MODULE__{
-        uuid: uuid,
-        giveaway_defintion: GiveAwayDefintion.generate(uuid, state),
-        packs_available: state.packs_available || 0,
-        pack: %{},
-        last_pack_number: 0,
-        prize_numbers: prize_numbers,
-        called_numbers: %{}
-      }
+    # packs_available = initial_state.packs_available || giveaway.packs_available
+    # pack = initial_state.pack || giveaway.pack
+    # last_pack_number = initial_state.last_pack_number || giveaway.last_pack_number
+    # prize_numbers = initial_state.prize_numbers || giveaway.prize_numbers
+    # called_numbers = initial_state.called_numbers || giveaway.called_numbers
+
+    state = %__MODULE__{
+      uuid: initial_state.uuid,
+      giveaway_defintion: GiveAwayDefintion.generate(initial_state.uuid, initial_state),
+      packs_available: initial_state.packs_available,
+      pack: %{},
+      last_pack_number: 0,
+      called_numbers: %{},
+      repo: repo
     }
+
+    {:ok, state, {:continue, :generate_prize_numbers}}
+  end
+
+  @impl GenServer
+  def handle_continue(:generate_prize_numbers, state) do
+    prize_numbers = generate_random_prize_numbers(state)
+    state = %{state | prize_numbers: prize_numbers}
+
+    {:noreply, state}
   end
 
   #################### Public API ####################
@@ -114,11 +128,11 @@ defmodule GiveAwayDCSP do
 
   @spec generate_random_prize_numbers(t()) :: map()
   defp generate_random_prize_numbers(state) do
-    max_pack_quantity = state.max_pack_quantity
-    potential_prizes = mock_possible_prizes(max_pack_quantity)
+    max_pack_quantity = state.giveaway_defintion.max_pack_quantity
+    prizes = state.repo.fetch_giveaway_prizes(state.uuid, max_pack_quantity)
 
-    Enum.reduce(Map.keys(potential_prizes), %{}, fn key, acc ->
-      prize_map = potential_prizes[key]
+    Enum.reduce(Map.keys(prizes), %{}, fn key, acc ->
+      prize_map = prizes[key]
 
       acc = Map.put(acc, prize_map[:name], %{})
       max_capacity = prize_map[:capacity]
@@ -152,18 +166,5 @@ defmodule GiveAwayDCSP do
   defp rng(max_pack_quantity, set) do
     number = Enum.random(1..max_pack_quantity)
     if MapSet.member?(set, number), do: rng(max_pack_quantity, set), else: number
-  end
-
-  # TODO remove this function when repo functionality is implemented.
-  def mock_possible_prizes(max_pack_quantity) do
-    allowed_currency = 0.1 * max_pack_quantity
-    allowed_shirts = 0.05 * max_pack_quantity
-    allowed_holy_grail = 1 / max_pack_quantity
-
-    %{
-      curreny: %{name: "currency", cost: 2.0, capacity: allowed_currency},
-      shirts: %{name: "shirts", cost: 25, capacity: allowed_shirts},
-      holy_grail: %{name: "Private S&M", cost: 100, capacity: allowed_holy_grail}
-    }
   end
 end

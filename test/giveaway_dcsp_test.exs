@@ -3,6 +3,7 @@ defmodule GiveAwayDCSPTest do
 
   setup context do
     default_params = %{
+      uuid: UUID.uuid4(),
       max_pack_quantity: 10,
       name: "test",
       packs_available: 10,
