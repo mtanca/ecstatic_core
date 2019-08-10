@@ -19,7 +19,7 @@ defmodule GiveAwayDCSPTest do
         default_params
       end
 
-    {:ok, pid} = GiveAwayDCSP.start_link(init_state)
+    {:ok, pid} = GiveAwayDCSP.start(init_state)
 
     %{init_state: init_state, pid: pid}
   end
@@ -56,7 +56,7 @@ defmodule GiveAwayDCSPTest do
       put_in(state.status, :active)
     end)
 
-    {:ok, pack} = GiveAwayDCSP.handle_purchase(nil)
+    {:ok, pack} = GiveAwayDCSP.handle_purchase(context[:pid], %{})
 
     state = :sys.get_state(context[:pid])
     assert state.giveaway_defintion.max_pack_quantity == 1
@@ -66,7 +66,7 @@ defmodule GiveAwayDCSPTest do
     assert state.status == :completed
 
     # No more packs can be sold.
-    {:error, "GiveAway has completed."} = GiveAwayDCSP.handle_purchase(nil)
+    {:error, "GiveAway has completed."} = GiveAwayDCSP.handle_purchase(context[:pid], %{})
   end
 
   test "Soft errors when GiveAway is :inactive", context do
@@ -75,7 +75,7 @@ defmodule GiveAwayDCSPTest do
     # GiveAway will default to :inactive unless explicitly marked as :active.
     assert state.status == :inactive
 
-    {:error, "GiveAway has not started."} = GiveAwayDCSP.handle_purchase(nil)
+    {:error, "GiveAway has not started."} = GiveAwayDCSP.handle_purchase(context[:pid], %{})
 
     # State does not change
     unchanged_state = :sys.get_state(context[:pid])
@@ -92,7 +92,7 @@ defmodule GiveAwayDCSPTest do
       put_in(state.status, :active)
     end)
 
-    {:ok, _pack} = GiveAwayDCSP.handle_purchase(nil)
+    {:ok, _pack} = GiveAwayDCSP.handle_purchase(context[:pid], %{})
     state = :sys.get_state(context[:pid])
 
     assert state.status == :suspended

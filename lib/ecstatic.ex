@@ -6,12 +6,18 @@ defmodule Ecstatic do
     Swarm.whereis_or_register_name(
       uuid,
       GiveAwayDCSP,
-      :start_link,
+      :start,
       [params]
     )
   end
 
   def handle_purchase(uuid, purchase_params) do
-    GiveAwayDCSP.handle_purchase(purchase_params)
+    case Swarm.whereis_name(uuid) do
+      pid when is_pid(pid) ->
+        GiveAwayDCSP.handle_purchase(pid, purchase_params)
+
+      _ ->
+        {:error, "Unable to find DCSP name: " <> uuid}
+    end
   end
 end

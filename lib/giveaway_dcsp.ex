@@ -22,8 +22,8 @@ defmodule GiveAwayDCSP do
     field(:repo, module(), default: MockRepo)
   end
 
-  def start_link(state \\ []) do
-    GenServer.start_link(__MODULE__, state, name: __MODULE__)
+  def start(state \\ []) do
+    GenServer.start(__MODULE__, state)
   end
 
   # TODO pull this information from repo in the event GiveAwayDCSP crashes.
@@ -61,15 +61,15 @@ defmodule GiveAwayDCSP do
 
   #################### Public API ####################
 
-  @spec handle_purchase(map()) :: {:ok, Pack.t()} | {:error, term()}
-  def handle_purchase(data) do
-    GenServer.call(__MODULE__, {:handle_purchase, data})
+  @spec handle_purchase(pid(), map()) :: {:ok, Pack.t()} | {:error, term()}
+  def handle_purchase(pid, purchase_params) do
+    GenServer.call(pid, {:handle_purchase, purchase_params})
   end
 
   #################### GenServer Implementation ####################
 
   @impl GenServer
-  def handle_call({:handle_purchase, _purchase_info}, _from, data) do
+  def handle_call({:handle_purchase, _purchase_params}, _from, data) do
     case data.status do
       :active ->
         case process(data) do
