@@ -3,8 +3,8 @@ defmodule GiveAwayDCSPTest do
 
   setup context do
     default_params = %{
-      uuid: UUID.uuid4(),
-      max_pack_quantity: 10,
+      id: UUID.uuid4(),
+      capacity: 10,
       name: "test",
       packs_available: 10,
       start_time: :os.system_time(:seconds) - 86_400,
@@ -19,19 +19,18 @@ defmodule GiveAwayDCSPTest do
         default_params
       end
 
-    {:ok, pid} = GiveAwayDCSP.start(init_state)
+    {:ok, pid} = GiveAwayDCSP.start_dcsp(init_state)
 
     %{init_state: init_state, pid: pid}
   end
 
-  @tag params: %{packs_available: 1}
   test "GiveAwayDCSP struct is created correctly", context do
     uuid = :sys.get_state(context[:pid]).uuid
 
     expected_struct = %GiveAwayDCSP{
       giveaway_defintion: GiveAwayDefintion.generate(uuid, context[:init_state]),
       uuid: uuid,
-      packs_available: 1,
+      packs_available: 10,
       pack: %{},
       last_pack_number: 0,
       status: :inactive
@@ -49,7 +48,7 @@ defmodule GiveAwayDCSPTest do
     assert is_map(state.called_numbers)
   end
 
-  @tag params: %{max_pack_quantity: 1, packs_available: 1}
+  @tag params: %{capacity: 1, packs_available: 1}
   test "GiveAway is completed when max quanitity of packs have been sold.", context do
     # Update GiveAwayDCSP to be :active
     :sys.replace_state(context[:pid], fn state ->

@@ -6,8 +6,8 @@ defmodule EcstaticTest do
       giveaway_uuid = UUID.uuid4()
 
       params = %{
-        uuid: giveaway_uuid,
-        max_pack_quantity: 10,
+        id: giveaway_uuid,
+        capacity: 10,
         name: "test",
         packs_available: 10,
         start_time: :os.system_time(:seconds) - 86_400,
@@ -24,8 +24,8 @@ defmodule EcstaticTest do
       giveaway_uuid = UUID.uuid4()
 
       params = %{
-        uuid: giveaway_uuid,
-        max_pack_quantity: 10,
+        id: giveaway_uuid,
+        capacity: 10,
         name: "test",
         packs_available: 10,
         start_time: :os.system_time(:seconds) - 86_400,

@@ -37,7 +37,8 @@ defmodule Pack do
 
     case result do
       nil ->
-        # Everyone wins the default prize (like a sticker)
+        # Everyone wins the default prize (like a sticker).
+        # TODO pull the default item for giveaway from repo.
         [Prize.new(sticker_item_uuid, "Sticker", 1)]
 
       {prize_name, _mapset} ->

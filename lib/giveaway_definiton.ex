@@ -20,11 +20,12 @@ defmodule GiveAwayDefintion do
     %__MODULE__{
       uuid: giveaway_uuid,
       name: params.name,
-      max_pack_quantity: params.max_pack_quantity,
+      max_pack_quantity: params.capacity,
       start_time: params.start_time,
       end_time: params.end_time
     }
   end
 
+  @spec default_generate_params() :: map()
   defp default_generate_params(), do: %{name: nil, start_time: nil, end_time: nil}
 end

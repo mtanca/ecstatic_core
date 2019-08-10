@@ -3,6 +3,7 @@ defmodule MockRepo do
   Module used to mock interactions with the DB.
   """
 
+  @spec fetch_giveaway_prizes(String.t(), non_neg_integer()) :: map()
   def fetch_giveaway_prizes(_uuid, max_pack_quantity) do
     allowed_currency = 0.1 * max_pack_quantity
     allowed_shirts = 0.05 * max_pack_quantity

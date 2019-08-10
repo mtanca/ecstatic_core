@@ -7,7 +7,7 @@ defmodule GiveAwayDefintionTest do
 
       params = %{
         name: "Test GiveAway Name",
-        max_pack_quantity: 50,
+        capacity: 50,
         start_time: :os.system_time(:seconds),
         end_time: :os.system_time(:seconds) + 86_400
       }
@@ -15,7 +15,7 @@ defmodule GiveAwayDefintionTest do
       expected_result = %GiveAwayDefintion{
         uuid: giveaway_uuid,
         name: params.name,
-        max_pack_quantity: params.max_pack_quantity,
+        max_pack_quantity: params.capacity,
         start_time: params.start_time,
         end_time: params.end_time
       }

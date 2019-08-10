@@ -1,8 +1,9 @@
 defmodule GiveAwayDCSP do
   @moduledoc """
   Process to manage a single GiveAway. You should think of this process as the main orchestration layer
-  in the core. It is responsible for creating, scheduling, and maintaining the state of each GiveAway.
-  It is also the public API for interacting with any Phoenix application.
+  in the core.
+
+  It is responsible for creating, scheduling, and maintaining the state of each GiveAway.
   """
 
   use GenServer
@@ -22,9 +23,19 @@ defmodule GiveAwayDCSP do
     field(:repo, module(), default: MockRepo)
   end
 
-  def start(state \\ []) do
+  #################### Public API ####################
+
+  @spec start_dcsp(list()) :: {:ok, pid()} | {:error, term()}
+  def start_dcsp(state \\ []) do
     GenServer.start(__MODULE__, state)
   end
+
+  @spec handle_purchase(pid(), map()) :: {:ok, Pack.t()} | {:error, term()}
+  def handle_purchase(pid, purchase_params) do
+    GenServer.call(pid, {:handle_purchase, purchase_params})
+  end
+
+  #################### GenServer Implementation ####################
 
   # TODO pull this information from repo in the event GiveAwayDCSP crashes.
   @impl GenServer
@@ -39,9 +50,9 @@ defmodule GiveAwayDCSP do
     # called_numbers = initial_state.called_numbers || giveaway.called_numbers
 
     state = %__MODULE__{
-      uuid: initial_state.uuid,
-      giveaway_defintion: GiveAwayDefintion.generate(initial_state.uuid, initial_state),
-      packs_available: initial_state.packs_available,
+      uuid: initial_state.id,
+      giveaway_defintion: GiveAwayDefintion.generate(initial_state.id, initial_state),
+      packs_available: initial_state.capacity,
       pack: %{},
       last_pack_number: 0,
       called_numbers: %{},
@@ -59,24 +70,14 @@ defmodule GiveAwayDCSP do
     {:noreply, state}
   end
 
-  #################### Public API ####################
-
-  @spec handle_purchase(pid(), map()) :: {:ok, Pack.t()} | {:error, term()}
-  def handle_purchase(pid, purchase_params) do
-    GenServer.call(pid, {:handle_purchase, purchase_params})
-  end
-
-  #################### GenServer Implementation ####################
-
   @impl GenServer
   def handle_call({:handle_purchase, _purchase_params}, _from, data) do
     case data.status do
       :active ->
-        case process(data) do
-          {:ok, new_data} ->
-            {:reply, {:ok, new_data.pack}, new_data}
-
-          {:error, _reason} = error ->
+        with {:ok, %__MODULE__{} = new_data} <- process(data) do
+          {:reply, {:ok, new_data.pack}, new_data}
+        else
+          error ->
             {:reply, error, data}
         end
 
@@ -168,6 +169,7 @@ defmodule GiveAwayDCSP do
   end
 
   # TODO put in a utils file
+  @spec rng(non_neg_integer(), MapSet.t()) :: non_neg_integer()
   defp rng(max_pack_quantity, set) do
     number = Enum.random(1..max_pack_quantity)
     if MapSet.member?(set, number), do: rng(max_pack_quantity, set), else: number
