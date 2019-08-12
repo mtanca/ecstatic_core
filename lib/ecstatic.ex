@@ -3,8 +3,10 @@ defmodule Ecstatic do
   The public API for interfacing with any application.
   """
 
-  @spec find_or_start_give_away(String.t(), map()) :: {:ok, pid()} | {:error, term()}
-  def find_or_start_give_away(uuid, params) do
+  @spec find_or_start_give_away(String.t(), map(), module()) :: {:ok, pid()} | {:error, term()}
+  def find_or_start_give_away(uuid, params, repo) do
+    params = Map.put(params, :repo, repo)
+
     Swarm.whereis_or_register_name(
       uuid,
       GiveAwayDCSP,

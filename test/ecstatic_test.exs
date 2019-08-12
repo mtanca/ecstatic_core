@@ -1,7 +1,7 @@
 defmodule EcstaticTest do
   use ExUnit.Case
 
-  describe "find_or_start_give_away/2" do
+  describe "find_or_start_give_away/3" do
     test "registers and starts GiveAwayDCSP" do
       giveaway_uuid = UUID.uuid4()
 
@@ -14,7 +14,7 @@ defmodule EcstaticTest do
         end_time: :os.system_time(:seconds) + 86_400
       }
 
-      Ecstatic.find_or_start_give_away(giveaway_uuid, params)
+      Ecstatic.find_or_start_give_away(giveaway_uuid, params, MockRepo)
       assert is_pid(Swarm.whereis_name(giveaway_uuid))
     end
   end
@@ -34,7 +34,7 @@ defmodule EcstaticTest do
 
       purchase_params = %{}
 
-      Ecstatic.find_or_start_give_away(giveaway_uuid, params)
+      Ecstatic.find_or_start_give_away(giveaway_uuid, params, MockRepo)
       pid = Swarm.whereis_name(giveaway_uuid)
 
       :sys.replace_state(pid, fn state ->

@@ -8,7 +8,8 @@ defmodule GiveAwayDCSPTest do
       name: "test",
       packs_available: 10,
       start_time: :os.system_time(:seconds) - 86_400,
-      end_time: :os.system_time(:seconds) + 86_400
+      end_time: :os.system_time(:seconds) + 86_400,
+      repo: MockRepo
     }
 
     # Merge any variables supplied by the test into the init state.
@@ -45,7 +46,6 @@ defmodule GiveAwayDCSPTest do
     assert expected_struct.last_pack_number == state.last_pack_number
     assert expected_struct.status == state.status
     assert is_map(state.prize_numbers)
-    assert is_map(state.called_numbers)
   end
 
   @tag params: %{capacity: 1, packs_available: 1}
