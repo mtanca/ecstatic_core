@@ -15,4 +15,13 @@ defmodule MockRepo do
       holy_grail: %{name: "Private S&M", cost: 100, capacity: allowed_holy_grail}
     }
   end
+
+  def find_give_away_by_uuid(uuid) do
+    %{
+      uuid: uuid,
+      name: "test",
+      capacity: 10,
+      state: %{}
+    }
+  end
 end
