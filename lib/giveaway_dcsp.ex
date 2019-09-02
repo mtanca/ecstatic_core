@@ -35,7 +35,6 @@ defmodule GiveAwayDCSP do
   end
 
   #################### GenServer Implementation ####################
-
   # TODO pull this information from repo in the event GiveAwayDCSP crashes.
   @impl GenServer
   def init(initial_state) do
@@ -48,19 +47,19 @@ defmodule GiveAwayDCSP do
         uuid: initial_state.id,
         giveaway_defintion: GiveAwayDefintion.generate(initial_state.id, initial_state),
         packs_available:
-          if(Map.has_key?(giveaway.state, :packs_available),
-            do: giveaway.state.last_pack_number,
+          if(Map.has_key?(giveaway.state, "packs_available"),
+            do: giveaway.state["packs_available"],
             else: initial_state.capacity
           ),
         pack: %{},
         last_pack_number:
-          if(Map.has_key?(giveaway.state, :last_pack_number),
-            do: giveaway.state.last_pack_number,
+          if(Map.has_key?(giveaway.state, "last_pack_number"),
+            do: giveaway.state["last_pack_number"],
             else: 0
           ),
         prize_numbers:
-          if(Map.has_key?(giveaway.state, :prize_numbers),
-            do: giveaway.state.prize_numbers,
+          if(Map.has_key?(giveaway.state, "prize_numbers"),
+            do: convert_prize_numbers(giveaway.state["prize_numbers"]),
             else: generate_random_prize_numbers(initial_state)
           ),
         repo: repo
@@ -174,5 +173,15 @@ defmodule GiveAwayDCSP do
   defp rng(max_pack_quantity, set) do
     number = Enum.random(1..max_pack_quantity)
     if MapSet.member?(set, number), do: rng(max_pack_quantity, set), else: number
+  end
+
+  # Prize numbers are stores in the DB as an array/list. This function converts the datastructure
+  # to a mapset.
+  @spec convert_prize_numbers(map()) :: map
+  def convert_prize_numbers(prize_numbers) do
+    Enum.reduce(prize_numbers, %{}, fn {prize, numbers}, acc ->
+      numbers_mapset = Enum.into(numbers, MapSet.new())
+      Map.put(acc, prize, numbers_mapset)
+    end)
   end
 end
