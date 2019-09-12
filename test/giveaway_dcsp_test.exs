@@ -22,6 +22,16 @@ defmodule GiveAwayDCSPTest do
 
     {:ok, pid} = GiveAwayDCSP.start_dcsp(init_state)
 
+    # Sets the default prize for a give away...
+    Ecstatic.set_default_prize(pid, %{
+      give_away_id: 6,
+      id: 11,
+      prize: %{id: 7, image: %{file_name: "omg-prize.png"}, name: "OMG "},
+      prize_id: 7,
+      default_prize: true,
+      rarity: 62
+    })
+
     %{init_state: init_state, pid: pid}
   end
 

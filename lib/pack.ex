@@ -27,7 +27,7 @@ defmodule Pack do
 
   @spec get_prizes(data :: GiveAwayDCSP.t()) :: list() | nil
   def get_prizes(data) do
-    sticker_item_uuid = UUID.uuid4()
+    default_prize_uuid = UUID.uuid4()
     random_number = :rand.uniform(data.giveaway_defintion.max_pack_quantity)
 
     result =
@@ -39,11 +39,11 @@ defmodule Pack do
       nil ->
         # Everyone wins the default prize (like a sticker).
         # TODO pull the default item for giveaway from repo.
-        [Prize.new(sticker_item_uuid, "Sticker", 1)]
+        [Prize.new(default_prize_uuid, data.default_prize.prize.name, 1)]
 
       {prize_name, _mapset} ->
         prize = Prize.new(UUID.uuid4(), prize_name, 1)
-        [prize, Prize.new(sticker_item_uuid, "Sticker", 1)]
+        [prize, Prize.new(default_prize_uuid, data.default_prize.prize.name, 1)]
 
       _ ->
         nil
