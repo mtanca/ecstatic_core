@@ -25,4 +25,12 @@ defmodule Ecstatic do
         {:error, "Unable to find DCSP name: " <> uuid}
     end
   end
+
+  def generate_random_prize_numbers(pid, prizes) do
+    GiveAwayDCSP.generate_random_prize_numbers(pid, prizes)
+  end
+
+  def set_default_prize(pid, prize) do
+    GiveAwayDCSP.set_default_prize(pid, prize)
+  end
 end

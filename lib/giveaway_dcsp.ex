@@ -19,6 +19,7 @@ defmodule GiveAwayDCSP do
     field(:last_pack_number, non_neg_integer(), default: 0)
     field(:status, :inactive | :active | :completed, default: :inactive)
     field(:prize_numbers, map(), default: %{})
+    field(:default_prize, map(), default: %{})
     field(:repo, module(), default: MockRepo)
   end
 
@@ -32,6 +33,14 @@ defmodule GiveAwayDCSP do
   @spec handle_purchase(pid(), map()) :: {:ok, Pack.t()} | {:error, term()}
   def handle_purchase(pid, purchase_params) do
     GenServer.call(pid, {:handle_purchase, purchase_params})
+  end
+
+  def generate_random_prize_numbers(pid, prizes) do
+    GenServer.call(pid, {:generate_random_prize_numbers, prizes})
+  end
+
+  def set_default_prize(pid, prize) do
+    GenServer.call(pid, {:set_default_prize, prize})
   end
 
   #################### GenServer Implementation ####################
@@ -60,7 +69,12 @@ defmodule GiveAwayDCSP do
         prize_numbers:
           if(Map.has_key?(giveaway.state, "prize_numbers"),
             do: convert_prize_numbers(giveaway.state["prize_numbers"]),
-            else: generate_random_prize_numbers(initial_state)
+            else: %{}
+          ),
+        default_prize:
+          if(Map.has_key?(giveaway, :default_prize),
+            do: giveaway.default_prize,
+            else: %{}
           ),
         repo: repo
       }
@@ -87,6 +101,34 @@ defmodule GiveAwayDCSP do
       :completed ->
         {:reply, {:error, "GiveAway has completed."}, data}
     end
+  end
+
+  @impl GenServer
+  def handle_call({:generate_random_prize_numbers, prizes}, _from, data) do
+    max_pack_quantity = data.giveaway_defintion.max_pack_quantity
+
+    grpns =
+      Enum.reduce(prizes, %{}, fn giveaway_prize, acc ->
+        name = giveaway_prize.prize.name
+        rarity = giveaway_prize.rarity
+        acc = Map.put(acc, name, %{})
+
+        max_capacity = rarity / max_pack_quantity
+
+        # Generate unique & random values from 1 to max_pack_quantity.
+        unique_numbers = unique_prize_numbers(max_capacity, acc, max_pack_quantity)
+
+        Map.put(acc, name, unique_numbers)
+      end)
+
+    new_data = put_in(data.prize_numbers, grpns)
+    {:reply, {:ok, new_data.prize_numbers}, new_data}
+  end
+
+  @impl GenServer
+  def handle_call({:set_default_prize, prize}, _from, data) do
+    new_data = put_in(data.default_prize, prize)
+    {:reply, {:ok, "Default prize set."}, new_data}
   end
 
   #################### Private Functions ####################
@@ -127,27 +169,6 @@ defmodule GiveAwayDCSP do
       true ->
         data.status
     end
-  end
-
-  @spec generate_random_prize_numbers(t()) :: map()
-  defp generate_random_prize_numbers(state) do
-    max_pack_quantity = state.capacity
-
-    # FIXME
-    # prizes = state.repo.fetch_giveaway_prizes(state.id, max_pack_quantity)
-    prizes = MockRepo.fetch_giveaway_prizes(state.id, max_pack_quantity)
-
-    Enum.reduce(Map.keys(prizes), %{}, fn key, acc ->
-      prize_map = prizes[key]
-
-      acc = Map.put(acc, prize_map[:name], %{})
-      max_capacity = prize_map[:capacity]
-
-      # Generate unique & random values from 1 to max_pack_quantity.
-      unique_numbers = unique_prize_numbers(max_capacity, acc, max_pack_quantity)
-
-      Map.put(acc, prize_map[:name], unique_numbers)
-    end)
   end
 
   # Generates unique numbers for the prize based on the max_prize_quantity.
