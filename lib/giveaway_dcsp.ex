@@ -113,7 +113,7 @@ defmodule GiveAwayDCSP do
         rarity = giveaway_prize.rarity
         acc = Map.put(acc, name, %{})
 
-        max_capacity = rarity / max_pack_quantity
+        max_capacity = rarity * max_pack_quantity
 
         # Generate unique & random values from 1 to max_pack_quantity.
         unique_numbers = unique_prize_numbers(max_capacity, acc, max_pack_quantity)
