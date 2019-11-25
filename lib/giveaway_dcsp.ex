@@ -67,13 +67,13 @@ defmodule GiveAwayDCSP do
             else: 0
           ),
         prize_numbers:
-          if(Map.has_key?(giveaway.state, "prize_numbers"),
+          if(Map.has_key?(giveaway.state, "prize_numbers") && giveaway.state["prize_numbers"] != 0,
             do: convert_prize_numbers(giveaway.state["prize_numbers"]),
             else: %{}
           ),
         default_prize:
-          if(Map.has_key?(giveaway, :default_prize),
-            do: giveaway.default_prize,
+          if(Map.has_key?(giveaway.state, "default_prize"),
+            do: giveaway["default_prize"],
             else: %{}
           ),
         repo: repo
