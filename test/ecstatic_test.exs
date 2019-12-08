@@ -68,7 +68,8 @@ defmodule EcstaticTest do
         name: "test",
         packs_available: 10,
         start_time: :os.system_time(:seconds) - 86_400,
-        end_time: :os.system_time(:seconds) + 86_400
+        end_time: :os.system_time(:seconds) + 86_400,
+        status: "Active"
       }
 
       Ecstatic.find_or_start_give_away(giveaway_uuid, params, MockRepo)
@@ -86,7 +87,8 @@ defmodule EcstaticTest do
         name: "test",
         packs_available: 10,
         start_time: :os.system_time(:seconds) - 86_400,
-        end_time: :os.system_time(:seconds) + 86_400
+        end_time: :os.system_time(:seconds) + 86_400,
+        status: "Active"
       }
 
       purchase_params = %{}
@@ -94,11 +96,6 @@ defmodule EcstaticTest do
       Ecstatic.find_or_start_give_away(giveaway_uuid, params, MockRepo)
 
       pid = Swarm.whereis_name(giveaway_uuid)
-
-      :sys.replace_state(pid, fn state ->
-        put_in(state.status, :active)
-      end)
-
       # setup
       Ecstatic.generate_random_prize_numbers(pid, prizes)
 
@@ -128,7 +125,8 @@ defmodule EcstaticTest do
         name: "test",
         packs_available: 10,
         start_time: :os.system_time(:seconds) - 86_400,
-        end_time: :os.system_time(:seconds) + 86_400
+        end_time: :os.system_time(:seconds) + 86_400,
+        status: "Active"
       }
 
       Ecstatic.find_or_start_give_away(giveaway_uuid, params, MockRepo)
@@ -149,7 +147,8 @@ defmodule EcstaticTest do
         name: "test",
         packs_available: 10,
         start_time: :os.system_time(:seconds) - 86_400,
-        end_time: :os.system_time(:seconds) + 86_400
+        end_time: :os.system_time(:seconds) + 86_400,
+        status: "Active"
       }
 
       Ecstatic.find_or_start_give_away(giveaway_uuid, params, MockRepo)

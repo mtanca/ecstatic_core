@@ -61,18 +61,23 @@ defmodule GiveAwayDCSP do
             else: initial_state.capacity
           ),
         pack: %{},
+        status:
+          if(Map.has_key?(giveaway, :status),
+            do: get_status(giveaway.status),
+            else: get_status(initial_state.status)
+          ),
         last_pack_number:
           if(Map.has_key?(giveaway.state, "last_pack_number"),
             do: giveaway.state["last_pack_number"],
             else: 0
           ),
         prize_numbers:
-          if(Map.has_key?(giveaway.state, "prize_numbers") && giveaway.state["prize_numbers"] != 0,
+          if(giveaway.state["prize_numbers"] && giveaway.state["prize_numbers"] != %{},
             do: convert_prize_numbers(giveaway.state["prize_numbers"]),
             else: %{}
           ),
         default_prize:
-          if(Map.has_key?(giveaway.state, "default_prize"),
+          if(giveaway.state["default_prize"] && giveaway.state["default_prize"] != %{},
             do: giveaway["default_prize"],
             else: %{}
           ),
@@ -204,5 +209,14 @@ defmodule GiveAwayDCSP do
       numbers_mapset = Enum.into(numbers, MapSet.new())
       Map.put(acc, prize, numbers_mapset)
     end)
+  end
+
+  @spec get_status(status :: String.t()) :: atom()
+  defp get_status(status) do
+    case status do
+      "Ended" -> :completed
+      "Active" -> :active
+      "Not Started" -> :inactive
+    end
   end
 end
