@@ -9,7 +9,8 @@ defmodule GiveAwayDCSPTest do
       packs_available: 10,
       start_time: :os.system_time(:seconds) - 86_400,
       end_time: :os.system_time(:seconds) + 86_400,
-      repo: MockRepo
+      repo: MockRepo,
+      status: "Not Started"
     }
 
     # Merge any variables supplied by the test into the init state.
