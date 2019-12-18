@@ -78,7 +78,7 @@ defmodule GiveAwayDCSP do
           ),
         default_prize:
           if(giveaway.state["default_prize"] && giveaway.state["default_prize"] != %{},
-            do: giveaway["default_prize"],
+            do: giveaway.state["default_prize"],
             else: %{}
           ),
         repo: repo
