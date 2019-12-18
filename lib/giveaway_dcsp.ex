@@ -71,14 +71,14 @@ defmodule GiveAwayDCSP do
             do: giveaway.state["last_pack_number"],
             else: 0
           ),
-        prize_numbers:
-          if(giveaway.state["prize_numbers"] && giveaway.state["prize_numbers"] != %{},
-            do: convert_prize_numbers(giveaway.state["prize_numbers"]),
-            else: %{}
-          ),
         default_prize:
           if(giveaway.state["default_prize"] && giveaway.state["default_prize"] != %{},
             do: giveaway.state["default_prize"],
+            else: %{}
+          ),
+        prize_numbers:
+          if(giveaway.state["prize_numbers"] && giveaway.state["prize_numbers"] != %{},
+            do: convert_prize_numbers(giveaway.state["prize_numbers"]),
             else: %{}
           ),
         repo: repo
